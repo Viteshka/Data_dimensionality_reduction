@@ -76,6 +76,30 @@ static void find_bounds(const Matrix *points, double *min_x, double *max_x,
     }
 }
 
+// Extends the data bounds so centroids are also visible.
+static void include_centroid_bounds(const Matrix *centroids, double *min_x,
+                                    double *max_x, double *min_y,
+                                    double *max_y)
+{
+    for (size_t row = 0; row < centroids->rows; row++) {
+        double x = centroids->values[row * centroids->cols];
+        double y = centroids->values[row * centroids->cols + 1];
+
+        if (x < *min_x) {
+            *min_x = x;
+        }
+        if (x > *max_x) {
+            *max_x = x;
+        }
+        if (y < *min_y) {
+            *min_y = y;
+        }
+        if (y > *max_y) {
+            *max_y = y;
+        }
+    }
+}
+
 // Writes the legend for original Wine classes.
 static void write_legend(FILE *file)
 {
@@ -112,6 +136,12 @@ static void write_cluster_legend(FILE *file, size_t cluster_count)
                       "font-family=\"Arial\">Cluster %lu</text>\n",
                       x + 22.0, item_y, (unsigned long)(cluster + 1));
     }
+    fprintf(file, "<rect x=\"%.0f\" y=\"%.0f\" width=\"10\" height=\"10\" "
+                  "fill=\"white\" stroke=\"#111\" stroke-width=\"2\" />\n",
+                  x + 3.0, y + 25.0 * (double)(cluster_count + 1) - 11.0);
+    fprintf(file, "<text x=\"%.0f\" y=\"%.0f\" font-size=\"13\" "
+                  "font-family=\"Arial\">Centroid</text>\n",
+                  x + 22.0, y + 25.0 * (double)(cluster_count + 1));
 }
 
 // Saves the PCA projection colored by the original Wine classes.
@@ -181,7 +211,8 @@ int svg_write_pca_projection(const char *path, const Matrix *points,
 
 // Saves the PCA projection colored by k-means clusters.
 int svg_write_kmeans_projection(const char *path, const Matrix *points,
-                                const int *clusters, size_t cluster_count)
+                                const int *clusters, const Matrix *centroids,
+                                size_t cluster_count)
 {
     FILE *file;
     double min_x;
@@ -190,11 +221,13 @@ int svg_write_kmeans_projection(const char *path, const Matrix *points,
     double max_y;
 
     if (path == NULL || !matrix_is_valid(points) || points->cols < 2 ||
-        clusters == NULL || cluster_count == 0) {
+        clusters == NULL || !matrix_is_valid(centroids) ||
+        centroids->cols < 2 || cluster_count == 0) {
         return 0;
     }
 
     find_bounds(points, &min_x, &max_x, &min_y, &max_y);
+    include_centroid_bounds(centroids, &min_x, &max_x, &min_y, &max_y);
 
     file = fopen(path, "w");
     if (file == NULL) {
@@ -232,6 +265,22 @@ int svg_write_kmeans_projection(const char *path, const Matrix *points,
                       svg_x, svg_y, SVG_POINT_RADIUS,
                       cluster_color(clusters[row]),
                       (unsigned long)(row + 1), clusters[row] + 1);
+    }
+
+    for (size_t cluster = 0; cluster < centroids->rows; cluster++) {
+        double x = centroids->values[cluster * centroids->cols];
+        double y = centroids->values[cluster * centroids->cols + 1];
+        double svg_x = scale_value(x, min_x, max_x, SVG_MARGIN,
+                                   SVG_WIDTH - SVG_MARGIN);
+        double svg_y = scale_value(y, min_y, max_y, SVG_HEIGHT - SVG_MARGIN,
+                                   SVG_MARGIN);
+
+        fprintf(file, "<rect class=\"centroid\" x=\"%.2f\" y=\"%.2f\" "
+                      "width=\"14\" height=\"14\" fill=\"%s\" "
+                      "stroke=\"#111\" stroke-width=\"2\">"
+                      "<title>Centroid %lu</title></rect>\n",
+                      svg_x - 7.0, svg_y - 7.0, cluster_color((int)cluster),
+                      (unsigned long)(cluster + 1));
     }
 
     write_cluster_legend(file, cluster_count);
