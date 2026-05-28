@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 
+//скалярное произведение двух векторов
 double vector_dot(const double *left, const double *right, size_t size)
 {
     double result = 0.0;
@@ -18,11 +19,13 @@ double vector_dot(const double *left, const double *right, size_t size)
     return result;
 }
 
+//длина вектора
 double vector_norm(const double *vector, size_t size)
 {
     return sqrt(vector_dot(vector, vector, size));
 }
 
+//нормальзация вектора, сокращение его длины до 1
 int vector_normalize(double *vector, size_t size)
 {
     double norm;
@@ -41,7 +44,7 @@ int vector_normalize(double *vector, size_t size)
 
     return 1;
 }
-
+//вывод значений вектора
 void vector_print(const double *vector, size_t size)
 {
     size_t index;
