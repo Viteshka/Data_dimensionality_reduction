@@ -76,7 +76,8 @@ static int power_iteration(const Matrix *covariance, double *component,
             return 0;
         }
 
-        if (component_difference(component, next, covariance->cols)){ //если на итерации разница между прошлым 
+        if (component_difference(component, next, covariance->cols)
+            < PCA_TOLERANCE) {                                    //если на итерации разница между прошлым 
             for (size_t column = 0; column < covariance->cols; column++) { //и новым вектором меньше
                 component[column] = next[column];                          //погрешности завершаем
             }
