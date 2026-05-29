@@ -46,8 +46,8 @@ static int assign_points(const Matrix *points, KMeansResult *result)
             }
         }
 
-        if (result->labels[row] != best_cluster) {
-            result->labels[row] = best_cluster;
+        if (result->labels[row] != best_cluster) { //если новый кластер точки не совпал со старым
+            result->labels[row] = best_cluster;   //присваем новый номер кластера
             changed = 1;
         }
     }
@@ -118,14 +118,14 @@ int kmeans_fit(const Matrix *points, size_t clusters, size_t max_iterations,
     initialize_centroids(points, &result->centroids);
 
     for (size_t iteration = 0; iteration < max_iterations; iteration++) {
-        int changed = assign_points(points, result);
-
-        result->iterations = iteration + 1;
+        int changed = assign_points(points, result); //назначаем каждой точке кластер, 
+                                                     //получаем 0, если с прошлой итерации 
+        result->iterations = iteration + 1;          //ни одна точка не поменяла кластер
         if (!update_centroids(points, result)) {
             kmeans_destroy(result);
             return 0;
         }
-        if (!changed) {
+        if (!changed) { //если ни одна точка не поменяла кластер за итерацию можно остановить алгоритм
             break;
         }
     }
